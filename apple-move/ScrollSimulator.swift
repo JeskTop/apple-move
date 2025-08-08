@@ -126,7 +126,7 @@ class ScrollSimulator: ObservableObject {
         
         
         // 设置滚动阶段
-        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: 1)
+        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: phase.rawValue)
         event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 0)
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
         
