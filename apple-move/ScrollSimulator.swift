@@ -22,9 +22,11 @@ class ScrollSimulator: ObservableObject {
     
     // 滚动阶段枚举
     enum ScrollPhase: Int64 {
+        case ended = 0
         case began = 1      // 开始阶段
         case changed = 2    // 进行中阶段
-        case ended = 3      // 结束阶段
+        case cancel = 4      // 结束阶段
+        case initial = 128   // 初始阶段
     }
     
     init() {
@@ -66,6 +68,7 @@ class ScrollSimulator: ObservableObject {
         self.isScrolling = true
         
         // 发送开始阶段事件
+        sendScrollEvent(speed: startSpeed, phase: .initial)
         sendScrollEvent(speed: startSpeed, phase: .began)
         
         // 启动定时器，每16ms发送一次事件
@@ -81,7 +84,7 @@ class ScrollSimulator: ObservableObject {
         
         if isScrolling {
             // 发送结束事件（速度为0）
-            sendScrollEvent(speed: 0, phase: .ended)
+            sendScrollEvent(speed: 0, phase: .cancel)
         }
         
         isScrolling = false
@@ -184,6 +187,7 @@ class ScrollSimulator: ObservableObject {
         self.isScrolling = true
         
         // 发送开始阶段事件
+        sendScrollEvent(speed: startSpeed, phase: .initial)
         sendScrollEvent(speed: startSpeed, phase: .began)
         
         // 启动定时器，每16ms发送一次事件
