@@ -1,10 +1,3 @@
-//
-//  apple_moveUITestsLaunchTests.swift
-//  apple-moveUITests
-//
-//  Created by 冯锐 on 2025/8/8.
-//
-
 import XCTest
 
 final class apple_moveUITestsLaunchTests: XCTestCase {

@@ -1,10 +1,3 @@
-//
-//  ScrollSimulator.swift
-//  apple-move
-//
-//  Created by 冯锐 on 2025/8/8.
-//
-
 import Foundation
 import CoreGraphics
 import ApplicationServices
@@ -40,40 +33,6 @@ class ScrollSimulator: ObservableObject {
             // 请求权限
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true]
             AXIsProcessTrustedWithOptions(options as CFDictionary)
-        }
-    }
-    
-    /// 开始模拟滚动
-    /// - Parameters:
-    ///   - startSpeed: 起始速度
-    ///   - endSpeed: 最终速度
-    ///   - steps: 发送数据次数
-    func startScrolling(startSpeed: Double, endSpeed: Double, steps: Int) {
-        // 检查权限
-        checkAccessibilityPermission()
-        guard hasAccessibilityPermission else {
-            print("没有辅助功能权限，无法模拟滚动")
-            return
-        }
-        
-        // 如果正在滚动，先停止
-        if isScrolling {
-            stopScrolling()
-        }
-        
-        self.startSpeed = startSpeed
-        self.endSpeed = endSpeed
-        self.totalSteps = steps
-        self.currentStep = 0
-        self.isScrolling = true
-        
-        // 发送开始阶段事件
-        sendScrollEvent(speed: startSpeed, phase: .initial)
-        sendScrollEvent(speed: startSpeed, phase: .began)
-        
-        // 启动定时器，每16ms发送一次事件
-        timer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] _ in
-            self?.sendNextScrollEvent()
         }
     }
     
@@ -114,21 +73,21 @@ class ScrollSimulator: ObservableObject {
     ///   - speed: 滚动速度
     ///   - phase: 滚动阶段
     private func sendScrollEvent(speed: Double, phase: ScrollPhase) {
-        let delta = Int32(speed.rounded())
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .pixel,
             wheelCount: 1,
-            wheel1: delta,
+            wheel1: 0, // 必须非 0 才能被识别
             wheel2: 0,
             wheel3: 0
         ) else {
             print("无法创建滚动事件")
             return
         }
-        
-        
-        // 设置滚动阶段
+
+        event.setDoubleValueField(.scrollWheelEventPointDeltaAxis1, value: speed)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: speed)
+
         event.setIntegerValueField(.scrollWheelEventScrollPhase, value: phase.rawValue)
         event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 0)
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
@@ -185,11 +144,11 @@ class ScrollSimulator: ObservableObject {
         self.totalSteps = steps
         self.currentStep = 0
         self.isScrolling = true
-        
+
         // 发送开始阶段事件
         sendScrollEvent(speed: startSpeed, phase: .initial)
         sendScrollEvent(speed: startSpeed, phase: .began)
-        
+
         // 启动定时器，每16ms发送一次事件
         timer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] _ in
             self?.sendNextScrollEventWithCurve(curveType: curveType)

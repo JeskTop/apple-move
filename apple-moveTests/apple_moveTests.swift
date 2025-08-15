@@ -1,10 +1,3 @@
-//
-//  apple_moveTests.swift
-//  apple-moveTests
-//
-//  Created by 冯锐 on 2025/8/8.
-//
-
 import Testing
 @testable import apple_move
 
