@@ -5,7 +5,6 @@ struct ContentView: View {
     @State private var startSpeed: Double = 1
     @State private var endSpeed: Double = 80
     @State private var steps: Double = 80
-    @State private var selectedCurve: CurveType = .linear
     @State private var showingPermissionAlert = false
     
     var body: some View {
@@ -15,6 +14,36 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(.primary)
+            
+            // 倒计时显示
+            if scrollSimulator.isCountingDown {
+                VStack(spacing: 10) {
+                    Text("准备开始滚动")
+                        .font(.title2)
+                        .foregroundColor(.orange)
+                    
+                    ZStack {
+                        Circle()
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 8)
+                            .frame(width: 80, height: 80)
+                        
+                        Circle()
+                            .trim(from: 0, to: CGFloat(3 - scrollSimulator.countdownValue) / 3.0)
+                            .stroke(Color.orange, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .frame(width: 80, height: 80)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 1.0), value: scrollSimulator.countdownValue)
+                        
+                        Text("\(scrollSimulator.countdownValue)")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(15)
+            }
             
             // 参数设置区域
             VStack(alignment: .leading, spacing: 15) {
@@ -45,45 +74,34 @@ struct ContentView: View {
                     Slider(value: $steps, in: 10...200, step: 1)
                         .accentColor(.orange)
                 }
-                
-                // 加速度曲线选择
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("加速度曲线")
-                        .font(.subheadline)
-                    Picker("加速度曲线", selection: $selectedCurve) {
-                        ForEach(CurveType.allCases, id: \.self) { curve in
-                            Text(curve.rawValue).tag(curve)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                }
             }
             .padding()
             .background(Color.gray.opacity(0.1))
             .cornerRadius(10)
             
             // 控制按钮
-            HStack(spacing: 20) {
+            HStack(spacing: 15) {
                 Button(action: startScrolling) {
                     HStack {
-                        Image(systemName: scrollSimulator.isScrolling ? "stop.circle.fill" : "play.circle.fill")
-                        Text(scrollSimulator.isScrolling ? "停止滚动" : "开始滚动")
+                        Image(systemName: getButtonIcon())
+                        Text(getButtonText())
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(scrollSimulator.isScrolling ? Color.red : (scrollSimulator.hasAccessibilityPermission ? Color.blue : Color.gray))
+                    .background(getButtonColor())
                     .cornerRadius(8)
                 }
-                .disabled(!scrollSimulator.hasAccessibilityPermission && !scrollSimulator.isScrolling)
+                .disabled(!scrollSimulator.hasAccessibilityPermission && !scrollSimulator.isScrolling && !scrollSimulator.isCountingDown)
+                
                 
                 Button(action: showPermissionInfo) {
                     HStack {
                         Image(systemName: "info.circle")
-                        Text("权限设置")
+                        Text("权限")
                     }
                     .foregroundColor(.blue)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 15)
                     .padding(.vertical, 10)
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(8)
@@ -99,10 +117,11 @@ struct ContentView: View {
                 VStack(spacing: 8) {
                     HStack {
                         Circle()
-                            .fill(scrollSimulator.isScrolling ? Color.green : Color.gray)
+                            .fill(getStatusColor())
                             .frame(width: 12, height: 12)
-                        Text(scrollSimulator.isScrolling ? "正在滚动" : "待机中")
+                        Text(getStatusText())
                             .font(.subheadline)
+                        Spacer()
                     }
                     
                     HStack {
@@ -111,6 +130,7 @@ struct ContentView: View {
                             .frame(width: 12, height: 12)
                         Text(scrollSimulator.hasAccessibilityPermission ? "权限已授予" : "需要权限")
                             .font(.subheadline)
+                        Spacer()
                     }
                 }
             }
@@ -121,7 +141,7 @@ struct ContentView: View {
             Spacer()
             
             // 说明文字
-            Text("注意：使用此功能需要授予辅助功能权限")
+            Text("点击开始滚动后，将有3秒倒计时准备时间")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -134,18 +154,71 @@ struct ContentView: View {
         }
     }
     
-    private func startScrolling() {
-        if scrollSimulator.isScrolling {
-            scrollSimulator.stopScrolling()
+    // MARK: - 辅助方法
+    
+    private func getButtonIcon() -> String {
+        if scrollSimulator.isCountingDown {
+            return "stop.circle.fill"
+        } else if scrollSimulator.isScrolling {
+            return "stop.circle.fill"
         } else {
-            scrollSimulator.startScrollingWithCurve(
+            return "play.circle.fill"
+        }
+    }
+    
+    private func getButtonText() -> String {
+        if scrollSimulator.isCountingDown {
+            return "取消倒计时"
+        } else if scrollSimulator.isScrolling {
+            return "停止滚动"
+        } else {
+            return "开始滚动"
+        }
+    }
+    
+    private func getButtonColor() -> Color {
+        if scrollSimulator.isCountingDown || scrollSimulator.isScrolling {
+            return Color.red
+        } else if scrollSimulator.hasAccessibilityPermission {
+            return Color.blue
+        } else {
+            return Color.gray
+        }
+    }
+    
+    private func getStatusColor() -> Color {
+        if scrollSimulator.isCountingDown {
+            return Color.orange
+        } else if scrollSimulator.isScrolling {
+            return Color.green
+        } else {
+            return Color.gray
+        }
+    }
+    
+    private func getStatusText() -> String {
+        if scrollSimulator.isCountingDown {
+            return "倒计时中"
+        } else if scrollSimulator.isScrolling {
+            return "正在滚动"
+        } else {
+            return "待机中"
+        }
+    }
+    
+    // MARK: - 按钮动作
+    private func startScrolling() {
+        if scrollSimulator.isCountingDown || scrollSimulator.isScrolling {
+            scrollSimulator.stopAll()
+        } else {
+            scrollSimulator.startScrollingWithCountdown(
                 startSpeed: startSpeed,
                 endSpeed: endSpeed,
-                steps: Int(steps),
-                curveType: selectedCurve
+                steps: Int(steps)
             )
         }
     }
+    
     
     private func showPermissionInfo() {
         scrollSimulator.checkAccessibilityPermission()
